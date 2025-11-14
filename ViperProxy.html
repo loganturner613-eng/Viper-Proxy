@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-R">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIPER</title>
+    
+    <!-- Custom SVG Favicon (Updated to all purple) -->
+    <link id="favicon" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E.bg%7Bfill:%230d0514;%7D.v%7Bfill:none;stroke:%23c07eff;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;%7D.l%7Bstroke:%23c07eff;stroke-width:8;stroke-linecap:round;%7D%3C/style%3E%3Crect class='bg' width='100' height='100'/%3E%3Cpath class='v' d='M20 20 L50 80 L80 20'/%3E%3Cline class='l' x1='10' y1='30' x2='40' y2='30'/%3E%3Cline class='l' x1='15' y1='45' x2='45' y2='45'/%3E%3C/svg%3E">
+
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Load Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Load Eruda DevTools -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+
+    <style>
+        :root {
+            --bg-color: #0d0514;
+            --grid-color: rgba(160, 90, 255, 0.1);
+            --primary-color: #c07eff;
+            --accent-color: #c07eff;
+        }
+
+        /* Full-height layout */
+        html, body {
+            height: 100%;
+            overflow: hidden; /* Prevent double scrollbars */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+            font-family: 'Share Tech Mono', monospace;
+            color: #eee;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Main container for dashboard */
+        #dashboard-view {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            /* Changed to 'flex-start' to accommodate search bar */
+            justify-content: flex-start;
+            padding-top: 4rem; /* Add padding for center-ish feel */
+        }
+        
+        /* New Proxy View styles */
+        #proxy-view {
+            flex-grow: 1; /* Fill remaining vertical space */
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 65px); /* Full height minus header */
+        }
+        #proxy-iframe {
+            flex-grow: 1; /* Iframe fills all available space */
+            border: none;
+            background-color: #fff; /* White background for loading */
+        }
+
+        /* Neon glow for input focus */
+        .neon-input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px var(--accent-color);
+            outline: none;
+        }
+
+        /* Tab Navigation */
+        .nav-tab {
+            color: var(--primary-color);
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-tab:hover {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .nav-tab-active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* Styling for the content panes */
+        .tab-pane {
+            display: none; /* Hidden by default */
+        }
+
+        .tab-pane-active {
+            display: block; /* Shown when active */
+        }
+
+        /* App/Game card styling */
+        .app-card {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            overflow: hidden; 
+        }
+        .app-card:hover {
+            background-color: rgba(192, 126, 255, 0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+        .app-card-desc {
+            font-size: 0.8rem;
+            color: #ccc;
+            opacity: 0.7;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
+        }
+
+        /* Custom Checkbox */
+        .form-checkbox {
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 4px;
+            background-color: rgba(0,0,0,0.2);
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+        .form-checkbox:checked {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        .form-checkbox:checked::after {
+            content: '✔';
+            color: var(--bg-color);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="w-full p-4 flex justify-between items-center text-sm sticky top-0 z-50 bg-black/30 backdrop-blur-md border-b border-purple-800/50 flex-shrink-0">
+        <nav class="flex items-center space-x-4 sm:space-x-8">
+            <!-- SVG Logo (Updated to all purple) -->
+            <a href="#" id="logo-btn" class="h-8 w-8" title="VIPER">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                    <style>.v{fill:none;stroke:#c07eff;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;}.l{stroke:#c07eff;stroke-width:8;stroke-linecap:round;}</style>
+                    <path class="v" d="M20 20 L50 80 L80 20"/>
+                    <line class="l" x1="10" y1="30" x2="40" y2="30"/>
+                    <line class="l" x1="15" y1="45" x2="45" y2="45"/>
+                </svg>
+            </a>
+            <!-- Nav Tabs -->
+            <button class="nav-tab nav-tab-active py-2 px-2 sm:px-4" data-tab="proxy">Home</button>
+            <button class="nav-tab py-2 px-2 sm:px-4" data-tab="games">Games</button>
+            <button class="nav-tab py-2 px-2 sm:px-4" data-tab="apps">Apps</button>
+            <button class="nav-tab py-2 px-2 sm:px-4" data-tab="settings">Settings</button>
+        </nav>
+        <div class="flex items-center space-x-4 text-purple-300">
+            <span id="clock" class="w-36 text-right"></span>
+            <i class="ph ph-sun text-xl"></i>
+            <i id="devtools-btn" class="ph ph-bug text-xl cursor-pointer" title="Toggle DevTools"></i>
+            <i class="ph ph-gear text-xl cursor-pointer" onclick="document.querySelector('[data-tab=\'settings\']').click()" title="Settings"></i>
+        </div>
+    </header>
+
+    <!-- Main Content Area (Dashboard) -->
+    <div id="dashboard-view" class="main-container w-full max-w-5xl mx-auto p-4 sm:p-8">
+        
+        <!-- Proxy/Home Tab -->
+        <div id="tab-proxy" class="tab-pane tab-pane-active text-center">
+            <h1 class="text-7xl sm:text-8xl md:text-9xl font-bold tracking-widest neon-title mb-10" style="text-shadow: 0 0 7px #c07eff, 0 0 10px #c07eff, 0 0 21px #c07eff, 0 0 42px #c07eff, 0 0 82px #c07eff;">
+                VIPER
+            </h1>
+            <form id="proxy-form" class="relative max-w-2xl mx-auto">
+                <input 
+                    type="text" 
+                    id="url-input" 
+                    name="url"
+                    class="neon-input w-full pl-5 pr-12 py-4 bg-gray-950/50 border-2 border-purple-500 rounded-lg text-white placeholder-gray-500 text-lg"
+                    placeholder="Enter URL or Search"
+                >
+                <button type="submit" class="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400 hover:text-purple-200 transition-colors">
+                    <i class="ph ph-paper-plane-right text-2xl"></i>
+                </button>
+            </form>
+            <div id="message-box" class="hidden mt-6 p-4 rounded-md border text-center max-w-2xl mx-auto">
+                <span id="message-text"></span>
+            </div>
+        </div>
+
+        <!-- Games Tab -->
+        <div id="tab-games" class="tab-pane">
+            <!-- Game Search Input -->
+            <div class="relative max-w-md mx-auto mb-6">
+                <input 
+                    type="text" 
+                    id="game-search" 
+                    class="neon-input w-full pl-5 pr-12 py-3 bg-gray-950/50 border-2 border-purple-500 rounded-lg text-white placeholder-gray-500 text-lg"
+                    placeholder="Search games..."
+                >
+                <i class="ph ph-magnifying-glass text-purple-400 absolute right-4 top-1/2 -translate-y-1/2"></i>
+            </div>
+            
+            <div id="games-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-h-[65vh] overflow-y-auto pr-2">
+                <!-- Games will be injected here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Apps Tab -->
+        <div id="tab-apps" class="tab-pane">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- App links -->
+                <a href="#" class="app-card p-4 text-center" data-url="https://www.youtube.com">
+                    <i class="ph ph-youtube-logo text-5xl text-purple-400 mb-2"></i>
+                    <span class="block font-medium">YouTube</span>
+                    <p class="app-card-desc">Video streaming service.</p>
+                </a>
+                <a href="#" class="app-card p-4 text-center" data-url="https://discord.com">
+                    <i class="ph ph-discord-logo text-5xl text-purple-400 mb-2"></i>
+                    <span class="block font-medium">Discord</span>
+                    <p class="app-card-desc">Chat for communities.</p>
+                </a>
+                <a href="#" class="app-card p-4 text-center" data-url="https://open.spotify.com">
+                    <i class="ph ph-spotify-logo text-5xl text-purple-400 mb-2"></i>
+                    <span class="block font-medium">Spotify</span>
+                    <p class="app-card-desc">Music and podcasts.</p>
+                </a>
+                <a href="#" class="app-card p-4 text-center" data-url="https://www.tiktok.com">
+                    <i class="ph ph-tiktok-logo text-5xl text-purple-400 mb-2"></i>
+                    <span class="block font-medium">TikTok</span>
+                    <p class="app-card-desc">Short-form video app.</p>
+                </a>
+                <a href="#" class="app-card p-4 text-center" data-url="https://sidequestvr.com/">
+                    <i class="ph ph-storefront text-5xl text-purple-400 mb-2"></i>
+                    <span class="block font-medium">SideQuest</span>
+                    <p class="app-card-desc">VR content library.</p>
+                </a>
+                <a href="#" class="app-card p-4 text-center" data-url="https://www.coolmathgames.com/">
+                    <i class="ph ph-game-controller text-5xl text-purple-400 mb-2"></i>
+                    <span class="block font-medium">Cool Math</span>
+                    <p class="app-card-desc">Logic and skill games.</p>
+                </a>
+                <a href="#" class="app-card p-4 text-center" data-url="https://amp-is-live.vercel.app/">
+                    <i class="ph ph-file-video text-5xl text-purple-400 mb-2"></i>
+                    <span class="block font-medium">AMP4</span>
+                    <p class="app-card-desc">Video player utility.</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Settings Tab (FIXED) -->
+        <div id="tab-settings" class="tab-pane">
+            <h2 class="text-3xl text-purple-300 mb-6 text-center">// SYSTEM_CONFIG</h2>
+            <!-- Add scroll container -->
+            <div class="max-h-[65vh] overflow-y-auto pr-2">
+                <div class="max-w-md mx-auto space-y-6">
+                    
+                    <div class="p-4 bg-gray-950/50 rounded-lg border border-purple-700">
+                        <label for="tab-title-input" class="font-medium text-purple-300 mb-2 block">// Change Tab Title & Favicon</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="tab-title-input" class="neon-input w-full px-3 py-2 bg-gray-900 border-2 border-purple-500 rounded-md text-white" placeholder="New page title...">
+                            <button id="set-title-btn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-500 transition-colors">Set</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-gray-950/50 rounded-lg border border-purple-700">
+                        <label for="show-clock-toggle" class="font-medium text-purple-300">// Show Clock</label>
+                        <input type="checkbox" id="show-clock-toggle" class="form-checkbox" checked>
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-gray-950/50 rounded-lg border border-purple-700">
+                        <label for="24-hour-toggle" class="font-medium text-purple-300">// 24-Hour Clock Format</label>
+                        <input type="checkbox" id="24-hour-toggle" class="form-checkbox">
+                    </div>
+
+                    <div class="p-4 bg-gray-950/50 rounded-lg border border-purple-700">
+                        <label class="font-medium text-purple-300 mb-2 block">// Custom Background</label>
+                        <div class="flex space-x-2">
+                            <input type="file" id="background-upload" accept="image/*" class="w-full text-sm text-gray-400
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-md file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-purple-600 file:text-white
+                                hover:file:bg-purple-500
+                                cursor-pointer">
+                            <button id="clear-background-btn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition-colors">Clear</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Proxy View (IFRAME container) -->
+    <div id="proxy-view" class="hidden">
+        <!-- Proxy Control Bar -->
+        <div id="proxy-controls" class="flex-shrink-0 p-2 bg-black/50 backdrop-blur-md flex items-center space-x-3">
+            <button id="close-proxy-btn" title="Close" class="px-3 py-2 text-gray-300 hover:bg-purple-600 hover:text-white rounded-md">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <button id="back-proxy-btn" title="Back" class="px-3 py-2 text-gray-300 hover:bg-purple-600 hover:text-white rounded-md">
+                <i class="ph ph-arrow-left text-xl"></i>
+            </button>
+            <button id="fwd-proxy-btn" title="Forward" class="px-3 py-2 text-gray-300 hover:bg-purple-600 hover:text-white rounded-md">
+                <i class="ph ph-arrow-right text-xl"></i>
+            </button>
+            <button id="reload-proxy-btn" title="Reload" class="px-3 py-2 text-gray-300 hover:bg-purple-600 hover:text-white rounded-md">
+                <i class="ph ph-arrow-clockwise text-xl"></i>
+            </button>
+        </div>
+        <!-- IFRAME -->
+        <iframe id="proxy-iframe" src="about:blank"></iframe>
+    </div>
+
+    <!-- Footer -->
+    <footer id="footer" class="w-full p-4 text-center flex-shrink-0">
+        <div class="flex justify-center space-x-6 text-purple-400">
+            <a href="#" class="hover:text-purple-200 transition-colors">Discord</a>
+            <a href="#" class="hover:text-purple-200 transition-colors">Github</a>
+        </div>
+    </footer>
+
+
+    <script>
+        // --- Game Data ---
+        const gamesList = [
+            {name: "Request A Game", url: "https://docs.google.com/forms/d/e/1FAIpQLSdyk8g52wuF2ezkwsj4qSdV_RiPJW5-OIbjXOYpHdNCgHjFRg/viewform?usp=dialog", desc: "Request Any Game For VIPER."},
+            {name: "Ovo", url: "https://ajh.academy.cdn.cloudflare.net/books/ovo/index.html", desc: "Fast-paced parkour platformer."},
+            {name: "Granny", url: "https://ajh.academy.cdn.cloudflare.net/books/granny/index.html", desc: "Escape Granny’s haunted house."},
+            {name: "Jack Black", url: "https://ajh.academy.cdn.cloudflare.net/books/jackblack/index.html", desc: "Funny parody adventure."},
+            {name: "Ultrakill", url: "https://ajh.academy.cdn.cloudflare.net/books/ultrakill/index.html", desc: "Retro-style fast FPS."},
+            {name: "Polytrack 2", url: "https://ajh.academy.cdn.cloudflare.net/books/polytrack2/index.html", desc: "Smooth 3D racing."},
+            {name: "Rocket Soccer", url: "https://ajh.academy.cdn.cloudflare.net/books/rocketsoccer/index.html", desc: "Rocket-powered soccer."},
+            {name: "Cluster Rush", url: "https://ajh.academy.cdn.cloudflare.net/books/cluster-rush/index.html", desc: "Jump across speeding trucks."},
+            {name: "Amanda the Adventurer", url: "https://ajh.academy.cdn.cloudflare.net/books/gn/amanda-the-adventurer/index.html", desc: "Solve eerie cartoon mysteries."},
+            {name: "Raft", url: "https://ajh.academy.cdn.cloudflare.net/books/gn/raft/index.html", desc: "Survive and build at sea."},
+            {name: "Minecraft", url: "https://ajh.academy.cdn.cloudflare.net/books/precision-client/index.html", desc: "Blocky sandbox survival."},
+            {name: "Blood Money", url: "https://ajh.academy.cdn.cloudflare.net/books/gn/bloodmoney/index.html", desc: "Dark strategy assassination."},
+            {name: "1v1.lol", url: "https://ajh.academy.cdn.cloudflare.net/books/1v1lol/index.html", desc: "Battle and build online."},
+            {name: "1v1.space", url: "https://ajh.academy.cdn.cloudflare.net/books/1v1space/index.html", desc: "Space duel for precision."},
+            {name: "2048", url: "https://ajh.academy.cdn.cloudflare.net/books/2048/index.html", desc: "Slide numbers to combine."},
+            {name: "Glass City", url: "https://ajh.academy.cdn.cloudflare.net/books/glass-city/index.html", desc: "Glass-breaking simulation."},
+            {name: "Moto X3M", url: "https://ajh.academy.cdn.cloudflare.net/books/motox3m/index.html", desc: "Race with stunts and flips."},
+            {name: "Moto X3M Pool", url: "https://ajh.academy.cdn.cloudflare.net/books/motox3m-pool/index.html", desc: "Summer stunt version."},
+            {name: "Moto X3M Spooky", url: "https::/ajh.academy.cdn.cloudflare.net/books/motox3m-spooky/index.html", desc: "Halloween racing edition."},
+            {name: "Moto X3M Winter", url: "https://ajh.academy.cdn.cloudflare.net/books/motox3m-winter/index.html", desc: "Winter-themed racing."},
+            {name: "Craftmine", url: "https://ajh.academy.cdn.cloudflare.net/books/craftmine/index.html", desc: "Mine, craft, and survive."},
+            {name: "Canyon Defense", url: "https://ajh.academy.cdn.cloudflare.net/books/canyondefense/index.html", desc: "Defend your base towers."},
+            {name: "Duck Life 1", url: "https://ajh.academy.cdn.cloudflare.net/books/ducklife1/index.html", desc: "Train and race your duck."},
+            {name: "Duck Life 2", url: "https://ajh.academy.cdn.cloudflare.net/books/ducklife2/index.html", desc: "Continue your duck training."},
+            {name: "Duck Life 3", url: "https://ajh.academy.cdn.cloudflare.net/books/ducklife3/index.html", desc: "Evolution duck adventures."},
+            {name: "Flappy Bird", url: "https://ajh.academy.cdn.cloudflare.net/books/flappy-bird/index.html", desc: "Tap to fly through pipes."},
+            {name: "FNaF", url: "https://ajh.academy.cdn.cloudflare.net/books/gn/fnaf/index.html", desc: "Survive the haunted pizzeria."},
+            {name: "Snow Rider 3D", url: "https://ajh.academy.cdn.cloudflare.net/books/snow-rider-3d/index.html", desc: "Extreme winter racing."},
+            {name: "Basket Random", url: "https://ajh.academy.cdn.cloudflare.net/books/basketrandom/index.html", desc: "Crazy basketball fun."},
+            {name: "Crazy Chicken 3D", url: "https://ajh.academy.cdn.cloudflare.net/books/crazychicken3d/index.html", desc: "Dodge obstacles in 3D."},
+            {name: "Learn to Fly", url: "https://ajh.academy.cdn.cloudflare.net/books/learntofly/index.html", desc: "Launch penguins to fly."},
+            {name: "Learn to Fly 2", url: "https://ajh.academy.cdn.cloudflare.net/books/learntofly2/index.html", desc: "Improve your flight skills."},
+            {name: "Balatro", url: "https://ajh.academy.cdn.cloudflare.net/books/balatro/index.html", desc: "Fun arcade action."},
+            {name: "Omori Fixed", url: "https://ajh.academy.cdn.cloudflare.net/books/gn/omori-fixed/index.html", desc: "Psychological RPG adventure."},
+            {name: "9007199254740992", url: "https://ajh.academy.cdn.cloudflare.net/books/9007199254740992/index.html", desc: "Number puzzle game."},
+            {name: "Circlo", url: "https://ajh.academy.cdn.cloudflare.net/books/circlo/index.html", desc: "Circular puzzle game."},
+            {name: "Class of 09", url: "https://ajh.academy.cdn.cloudflare.net/books/gn/class-of-09/index.html", desc: "School mystery adventure."},
+            {name: "Cuphead", url: "httpsG://ajh.academy.cdn.cloudflare.net/books/gn/cuphead/index.html", desc: "Run and gun platformer."},
+            {name: "Cuphead CDV", url: "https://ajh.academy.cdn.cloudflare.net/books/cuphead-cdv/index.html", desc: "Fan-made Cuphead levels."},
+            {name: "CTR", url: "https://ajh.academy.cdn.cloudflare.net/books/ctr/index.html", desc: "Cut the rope puzzle adventure."},
+            {name: "CTR Holiday", url: "https://ajh.academy.cdn.cloudflare.net/books/ctr-holiday/index.html", desc: "Holiday edition."},
+            {name: "CTR TR", url: "https://ajh.academy.cdn.cloudflare.net/books/ctr-tr/index.html", desc: "Turbo rope edition."},
+            {name: "Doodle Jump", url: "https://ajh.academy.cdn.cloudflare.net/books/doodle-jump/index.html", desc: "Jump upwards endlessly."},
+            {name: "1", url: "https://ajh.academy.cdn.cloudflare.net/books/1/index.html", desc: "Minimalistic puzzle game."},
+            {name: "Basketball Stars", url: "https://ajh.academy.cdn.cloudflare.net/books/basketball-stars/index.html", desc: "Competitive basketball game."},
+            {name: "DELTARUNE", url: "https://ajh.academy.cdn.cloudflare.net/books/DELTARUNE/index.html", desc: "Epic RPG adventure."},
+            {name: "Hollow Knight", url: "https://ajh.academy.cdn.cloudflare.net/books/hollow-knight/index.html", desc: "Metroidvania action."},
+            {name: "Draw the Hill", url: "https://ajh.academy.cdn.cloudflare.net/books/draw-the-hill/index.html", desc: "Physics-based racing."},
+            {name: "GeoDash", url: "https://ajh.academy.cdn.cloudflare.net/books/geodash/index.html", desc: "Geometry dash clone."},
+            {name: "PortalFlash", url: "https://ajh.academy.cdn.cloudflare.net/books/portalflash/index.html", desc: "Portal-based puzzle game."},
+            {name: "Run 3", url: "https://ajh.academy.cdn.cloudflare.net/books/run3/index.html", desc: "Endless running adventure."},
+            {name: "Sandboxels", url: "https://ajh.academy.cdn.cloudflare.net/books/sandboxels/index.html", desc: "Sandbox physics fun."},
+            {name: "Rooftop Snipers", url: "https://ajh.academy.cdn.cloudflare.net/books/rooftop-snipers/index.html", desc: "PvP sniper battles."},
+            {name: "Wordle", url: "https://ajh.academy.cdn.cloudflare.net/books/wordle/index.html", desc: "Guess the word daily."},
+            {name: "Mario", url: "https://ajh.academy.cdn.cloudflare.net/books/mario/index.html", desc: "Classic platformer."},
+            {name: "Retro Bowl", url: "https://game.retrobowl.me/", desc: "Classic-style football game."}
+        ];
+
+        // --- Global Element Refs ---
+        let dashboardView, proxyView, proxyIframe, closeProxyBtn, footer;
+        let erudaInitialized = false;
+
+        // --- Page Load Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get new elements
+            dashboardView = document.getElementById('dashboard-view');
+            proxyView = document.getElementById('proxy-view');
+            proxyIframe = document.getElementById('proxy-iframe');
+            closeProxyBtn = document.getElementById('close-proxy-btn');
+            footer = document.getElementById('footer');
+
+            // Populate Games
+            const gamesGrid = document.getElementById('games-grid');
+            gamesList.forEach(game => {
+                const gameEl = document.createElement('a');
+                gameEl.href = "#"; // Prevent navigation
+                gameEl.className = "app-card p-4";
+                gameEl.setAttribute('data-url', game.url);
+                // Add game name to dataset for searching
+                gameEl.setAttribute('data-name', game.name.toLowerCase()); 
+                gameEl.innerHTML = `
+                    <span class="block font-medium text-lg text-purple-300 pointer-events-none">${game.name}</span>
+                    <p class="app-card-desc pointer-events-none">${game.desc}</p>
+                `;
+                gamesGrid.appendChild(gameEl);
+            });
+
+            // Load saved settings
+            applySavedSettings();
+
+            // Start Clock
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // --- Event Listeners ---
+            setupTabNavigation();
+            setupFormSubmission();
+            setupSettings();
+            setupLinkClicking();
+            setupProxyControls(); 
+            setupDevTools(); // New: Setup Eruda
+            setupGameSearch(); // New: Setup game search
+        });
+
+        // --- View Switching ---
+        function openProxy(url) {
+            // Set the iframe src
+            proxyIframe.src = url;
+            // Hide dashboard and footer
+            dashboardView.classList.add('hidden');
+            footer.classList.add('hidden');
+            // Show proxy view
+            proxyView.classList.remove('hidden');
+        }
+
+        function closeProxy() {
+            // Hide proxy view
+            proxyView.classList.add('hidden');
+            // Show dashboard and footer
+            dashboardView.classList.remove('hidden');
+            footer.classList.remove('hidden');
+            // Clear the iframe to stop execution
+            proxyIframe.src = 'about:blank';
+        }
+
+        // --- Apply Settings on Load ---
+        function applySavedSettings() {
+            // Background
+            const savedBg = localStorage.getItem('viperBg');
+            if (savedBg) {
+                document.body.style.backgroundImage = `url(${savedBg})`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center';
+                document.body.style.backgroundAttachment = 'fixed';
+            }
+
+            // Clock Visibility
+            const showClock = localStorage.getItem('viperShowClock') !== 'false'; // Default to true
+            document.getElementById('show-clock-toggle').checked = showClock;
+            document.getElementById('clock').style.display = showClock ? 'block' : 'none';
+
+            // Clock Format
+            const use24Hour = localStorage.getItem('viper24Hour') === 'true';
+            document.getElementById('24-hour-toggle').checked = use24Hour;
+        }
+
+        // --- Tab Navigation ---
+        function setupTabNavigation() {
+            const tabs = document.querySelectorAll('.nav-tab');
+            const panes = document.querySelectorAll('.tab-pane');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // When a tab is clicked, always close the proxy view
+                    closeProxy(); 
+                    
+                    const tabName = tab.getAttribute('data-tab');
+
+                    tabs.forEach(t => t.classList.remove('nav-tab-active'));
+                    tab.classList.add('nav-tab-active');
+
+                    panes.forEach(pane => {
+                        pane.classList.toggle('tab-pane-active', pane.id === `tab-${tabName}`);
+                    });
+                });
+            });
+
+            // Make logo button go to Home tab
+            document.getElementById('logo-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelector('[data-tab="proxy"]').click();
+            });
+        }
+
+        // --- Clock ---
+        function updateClock() {
+            const clockEl = document.getElementById('clock');
+            if (localStorage.getItem('viperShowClock') === 'false') {
+                clockEl.style.display = 'none';
+                return;
+            }
+            clockEl.style.display = 'block';
+            
+            const now = new Date();
+            const use24Hour = localStorage.getItem('viper24Hour') === 'true';
+            
+            const timeOptions = { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit', 
+                hour12: !use24Hour 
+            };
+            
+            const time = now.toLocaleTimeString([], timeOptions);
+            const date = now.toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' });
+            clockEl.textContent = `${date} ${time}`;
+        }
+
+        // --- Settings ---
+        function setupSettings() {
+            // Tab Title & Favicon (UPDATED)
+            document.getElementById('set-title-btn').addEventListener('click', () => { 
+                const newTitle = document.getElementById('tab-title-input').value;
+                const faviconLink = document.getElementById('favicon');
+                
+                if (!newTitle) return; // Do nothing if empty
+
+                document.title = newTitle;
+
+                // Check if the first character is an emoji (basic check)
+                const emojiRegex = /[\p{Emoji_Presentation}\p{Emoji}\uFE0F]/u;
+                if (emojiRegex.test(newTitle.substring(0, 2))) {
+                    // It's an emoji, let's set it as the favicon
+                    const emoji = newTitle.substring(0, 2).trim();
+                    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${emoji}</text></svg>`;
+                    faviconLink.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+                } else {
+                    // Not an emoji, reset to default VIPER logo
+                    faviconLink.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E.bg%7Bfill:%230d0514;%7D.v%7Bfill:none;stroke:%23c07eff;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;%7D.l%7Bstroke:%23c07eff;stroke-width:8;stroke-linecap:round;%7D%3C/style%3E%3Crect class='bg' width='100' height='100'/%3E%3Cpath class='v' d='M20 20 L50 80 L80 20'/%3E%3Cline class='l' x1='10' y1='30' x2='40' y2='30'/%3E%3Cline class'l' x1='15' y1='45' x2='45' y2='45'/%3E%3C/svg%3E";
+                }
+            });
+
+            // Clock Visibility
+            document.getElementById('show-clock-toggle').addEventListener('change', (e) => {
+                localStorage.setItem('viperShowClock', e.target.checked);
+                updateClock(); 
+            });
+
+            // 24-Hour Clock
+            document.getElementById('24-hour-toggle').addEventListener('change', (e) => {
+                localStorage.setItem('viper24Hour', e.target.checked);
+                updateClock(); 
+            });
+
+            // Background Upload
+            document.getElementById('background-upload').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const dataUrl = event.target.result;
+                        localStorage.setItem('viperBg', dataUrl);
+                        document.body.style.backgroundImage = `url(${dataUrl})`;
+                        document.body.style.backgroundSize = 'cover';
+                        document.body.style.backgroundPosition = 'center';
+                        document.body.style.backgroundAttachment = 'fixed';
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Clear Background
+            document.getElementById('clear-background-btn').addEventListener('click', () => {
+                localStorage.removeItem('viperBg');
+                document.body.style.backgroundImage = `
+                    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+                    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px)
+                `;
+                document.body.style.backgroundSize = '40px 40px';
+                document.body.style.backgroundAttachment = 'scroll';
+            });
+        }
+
+        /**
+         * Takes a user input string and determines the final URL to be proxied.
+         * @param {string} input - The user's text from the search bar.
+         * @returns {string} The URL to be proxied (e.g., /proxy?url=...).
+         */
+        function getProxiedUrl(input) {
+            let finalUrl;
+            
+            // Check if it's a valid URL-like string
+            if (input.includes('.') && !input.includes(' ')) {
+                // It's a URL, add https:// if missing
+                if (input.startsWith('http://') || input.startsWith('https://')) {
+                    finalUrl = input;
+                } else {
+                    finalUrl = `https://${input}`;
+                }
+            } else {
+                // It's a search term, use DuckDuckGo
+                finalUrl = `https://duckduckgo.com/?q=${encodeURIComponent(input)}`;
+            }
+
+            // Return the URL formatted for the Node.js proxy server
+            return `/proxy?url=${encodeURIComponent(finalUrl)}`;
+        }
+
+        // --- Proxy Form Submission ---
+        function setupFormSubmission() {
+            const form = document.getElementById('proxy-form');
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); 
+                const url = document.getElementById('url-input').value;
+                if (!url) {
+                    showMessage('// ERROR: Destination URL cannot be empty.', 'error');
+                    return;
+                }
+                
+                const proxiedUrl = getProxiedUrl(url);
+                openProxy(proxiedUrl);
+                
+                showMessage(`// STATUS: Routing request...`, 'success');
+                document.getElementById('url-input').value = ''; // Clear input
+            });
+        }
+
+        // --- App/Game Link Clicking ---
+        function setupLinkClicking() {
+            document.body.addEventListener('click', e => {
+                const card = e.target.closest('a.app-card[data-url]');
+                if (card) {
+                    e.preventDefault();
+                    const url = card.getAttribute('data-url');
+                    
+                    // Format for the Node.js proxy server
+                    const proxiedUrl = `/proxy?url=${encodeURIComponent(url)}`;
+                    openProxy(proxiedUrl);
+                }
+            });
+        }
+
+        // --- Proxy Controls ---
+        function setupProxyControls() {
+            // Close
+            closeProxyBtn.addEventListener('click', () => {
+                closeProxy();
+            });
+
+            // Reload
+            document.getElementById('reload-proxy-btn').addEventListener('click', () => {
+                try {
+                    proxyIframe.contentWindow.location.reload();
+                } catch (e) {
+                    console.error('Error reloading iframe:', e);
+                }
+            });
+            
+            // Back
+            document.getElementById('back-proxy-btn').addEventListener('click', () => {
+                try {
+                    proxyIframe.contentWindow.history.back();
+                } catch (e) {
+                    console.error('Error going back in iframe:', e);
+                }
+            });
+
+            // Forward
+            document.getElementById('fwd-proxy-btn').addEventListener('click', () => {
+                try {
+                    proxyIframe.contentWindow.history.forward();
+                } catch (e) {
+                    console.error('Error going forward in iframe:', e);
+                }
+            });
+        }
+
+        // --- DevTools (Eruda) ---
+        function setupDevTools() {
+            document.getElementById('devtools-btn').addEventListener('click', () => {
+                if (!erudaInitialized) {
+                    try {
+                        eruda.init();
+                        eruda.show();
+                        erudaInitialized = true;
+                        showMessage('// Eruda DevTools initialized.', 'success');
+                    } catch(e) {
+                        showMessage('// ERROR: Could not load DevTools.', 'error');
+                        console.error(e);
+                    }
+                } else {
+                    eruda.toggle();
+                }
+            });
+        }
+
+        // --- Game Search ---
+        function setupGameSearch() {
+            const searchInput = document.getElementById('game-search');
+            searchInput.addEventListener('keyup', () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                const gameCards = document.querySelectorAll('#games-grid .app-card');
+                
+                gameCards.forEach(card => {
+                    const gameName = card.getAttribute('data-name');
+                    if (gameName.includes(searchTerm)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // --- Message Box ---
+        function showMessage(message, type) {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            messageBox.classList.remove('hidden', 'border-purple-500', 'text-purple-300', 'border-red-500', 'text-red-300');
+            
+            if (type === 'success') {
+                messageBox.classList.add('border-purple-500', 'text-purple-300');
+            } else {
+                messageBox.classList.add('border-red-500', 'text-red-300');
+            }
+            messageText.textContent = message;
+
+            // Hide the message after 3 seconds
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 3000);
+        }
+
+    </script>
+
+</body>
+</html>
